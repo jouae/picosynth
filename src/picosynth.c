@@ -153,6 +153,9 @@ static void voice_update_usage_mask(picosynth_voice_t *v)
 
 picosynth_t *picosynth_create(uint8_t voices, uint8_t nodes)
 {
+    if (nodes > PICOSYNTH_MAX_NODES)
+        return NULL;
+
     picosynth_t *s = calloc(1, sizeof(picosynth_t));
     if (!s)
         return NULL;
@@ -475,7 +478,7 @@ q15_t picosynth_process(picosynth_t *s)
 
         picosynth_voice_t *v = &s->voices[vi];
         picosynth_node_t *nodes = v->nodes;
-        int32_t tmp[v->n_nodes];
+        int32_t tmp[PICOSYNTH_MAX_NODES];
 
         /* Two-pass processing per voice:
          * 1. Compute outputs from current state of all nodes.

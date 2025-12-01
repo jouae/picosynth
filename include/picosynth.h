@@ -44,6 +44,19 @@
 #error "PICOSYNTH_BLOCK_SIZE must be <= 255 (uint8_t block_counter)"
 #endif
 
+/* Maximum nodes per voice. Fixed-size scratch array avoids VLAs
+ * (banned from Linux kernel due to stack overflow risk).
+ * Default 32 is sufficient for complex patches; increase if needed.
+ * picosynth_create() returns NULL if nodes exceeds this limit.
+ */
+#ifndef PICOSYNTH_MAX_NODES
+#define PICOSYNTH_MAX_NODES 32
+#endif
+
+#if PICOSYNTH_MAX_NODES > 255
+#error "PICOSYNTH_MAX_NODES must be <= 255 (uint8_t n_nodes)"
+#endif
+
 /**
  * Q15 fixed-point: signed 16-bit, 15 fractional bits.
  * Range: [-1.0, +1.0) as [-32768, +32767].
