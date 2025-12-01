@@ -242,6 +242,8 @@ void picosynth_note_off(picosynth_t *s, uint8_t voice)
     (PICOSYNTH_MS(ms) > 0 ? (((int64_t) Q15_MAX << 4) / PICOSYNTH_MS(ms)) \
                           : ((int32_t) Q15_MAX << 4))
 #define PICOSYNTH_ENV_MIN_RATIO 1e-4
+/* Minimum release duration to avoid clicks when retriggering notes */
+#define PICOSYNTH_FAST_RELEASE_SAMPLES (SAMPLE_RATE / 100) /* ~10ms */
 
 /* Phase increments for octave 8; shift right for lower octaves */
 #define BASE_OCTAVE 8
@@ -301,6 +303,8 @@ static void env_update_exp_coeffs(picosynth_env_t *env)
         env->release > 0
             ? (peak + (uint32_t) env->release - 1) / (uint32_t) env->release
             : 1;
+    if (release_samples < PICOSYNTH_FAST_RELEASE_SAMPLES)
+        release_samples = PICOSYNTH_FAST_RELEASE_SAMPLES;
     env->release_coeff =
         env_calc_exp_coeff(release_samples, PICOSYNTH_ENV_MIN_RATIO);
 }
