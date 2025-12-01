@@ -182,7 +182,18 @@ void picosynth_wasm_set_filter_coeff(uint8_t voice, q15_t coeff)
         picosynth_params.v0_filter_coeff = coeff;
     else
         picosynth_params.v1_filter_coeff = coeff;
-    reinit_voices();
+
+    if (!picosynth_instance)
+        return;
+
+    picosynth_voice_t *v = picosynth_get_voice(picosynth_instance, voice);
+    if (!v)
+        return;
+
+    picosynth_node_t *flt = picosynth_voice_get_node(v, 0);
+    if (flt &&
+        (flt->type == PICOSYNTH_NODE_LP || flt->type == PICOSYNTH_NODE_HP))
+        picosynth_filter_set_coeff(flt, coeff);
 }
 
 EMSCRIPTEN_KEEPALIVE

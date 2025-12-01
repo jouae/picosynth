@@ -90,9 +90,10 @@ typedef struct {
 
 /* Single-pole filter state */
 typedef struct {
-    const q15_t *in; /* Input signal pointer */
-    int32_t accum;   /* Internal accumulator (Q31) */
-    q15_t coeff;     /* Cutoff: 0=DC, Q15_MAX=bypass */
+    const q15_t *in;    /* Input signal pointer */
+    int32_t accum;      /* Internal accumulator (Q31) */
+    q15_t coeff;        /* Smoothed cutoff: 0=DC, Q15_MAX=bypass */
+    q15_t coeff_target; /* Target cutoff for smoothing */
 } picosynth_filter_t;
 
 /* 3-input mixer state */
@@ -188,6 +189,9 @@ void picosynth_init_hp(picosynth_node_t *n,
                        const q15_t *gain,
                        const q15_t *in,
                        q15_t coeff);
+
+/* Set filter cutoff with smoothing */
+void picosynth_filter_set_coeff(picosynth_node_t *n, q15_t coeff);
 
 /* Initialize 3-input mixer node */
 void picosynth_init_mix(picosynth_node_t *n,

@@ -44,8 +44,10 @@ static void voice_note_on(picosynth_voice_t *v, uint8_t note)
         n->state = 0;
         n->out = 0;
         /* Reset filter accumulators to prevent DC offsets/pops */
-        if (n->type == PICOSYNTH_NODE_LP || n->type == PICOSYNTH_NODE_HP)
+        if (n->type == PICOSYNTH_NODE_LP || n->type == PICOSYNTH_NODE_HP) {
             n->flt.accum = 0;
+            n->flt.coeff = n->flt.coeff_target;
+        }
         /* Reset envelope block state to force immediate rate calculation */
         if (n->type == PICOSYNTH_NODE_ENV) {
             n->env.block_counter = 0;
@@ -325,6 +327,7 @@ void picosynth_init_lp(picosynth_node_t *n,
     n->type = PICOSYNTH_NODE_LP;
     n->flt.in = in;
     n->flt.coeff = coeff;
+    n->flt.coeff_target = coeff;
 }
 
 void picosynth_init_hp(picosynth_node_t *n,
@@ -337,6 +340,14 @@ void picosynth_init_hp(picosynth_node_t *n,
     n->type = PICOSYNTH_NODE_HP;
     n->flt.in = in;
     n->flt.coeff = coeff;
+    n->flt.coeff_target = coeff;
+}
+
+void picosynth_filter_set_coeff(picosynth_node_t *n, q15_t coeff)
+{
+    if (!n || (n->type != PICOSYNTH_NODE_LP && n->type != PICOSYNTH_NODE_HP))
+        return;
+    n->flt.coeff_target = q15_sat(coeff);
 }
 
 void picosynth_init_mix(picosynth_node_t *n,
@@ -504,6 +515,18 @@ q15_t picosynth_process(picosynth_t *s)
             }
             case PICOSYNTH_NODE_LP:
             case PICOSYNTH_NODE_HP: {
+                /* Smooth cutoff changes to avoid zipper noise (~4ms time
+                 * constant: delta/256 per sample).
+                 */
+                int32_t coeff_delta =
+                    (int32_t) n->flt.coeff_target - n->flt.coeff;
+                if (coeff_delta) {
+                    int32_t step = coeff_delta >> 8;
+                    if (step == 0)
+                        step = coeff_delta > 0 ? 1 : -1;
+                    n->flt.coeff = q15_sat((int32_t) n->flt.coeff + step);
+                }
+
                 /* Single-pole filter accumulator update:
                  * accum += (input - output)
                  * where output is the filtered signal from the previous sample.
