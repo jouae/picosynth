@@ -19,7 +19,7 @@ TEST_TARGET = test_runner
 # Melody selection: set MELODY to change the song
 # Available: happy_birthday, twinkle (default: happy_birthday)
 MELODY ?= happy_birthday
-MELODY_SRC = assets/melodies/$(MELODY).txt
+MELODY_SRC = web/assets/melodies/$(MELODY).txt
 MELODY_HDR = melody.h
 
 # Melody converter tool
@@ -83,10 +83,8 @@ $(WASM_OUT): $(WASM_SRCS) $(HDRS)
 
 # Copy melody files to web directory for deployment
 copy-melodies:
-	@rm -rf $(WASM_DIR)/assets
-	@mkdir -p $(WASM_DIR)/assets
-	@cp -r assets/melodies $(WASM_DIR)/assets/
-	@echo "Copied melody files to $(WASM_DIR)/assets/melodies/"
+	@mkdir -p $(WASM_DIR)/assets/melodies
+	@echo "Melody files reside in $(WASM_DIR)/assets/melodies/"
 
 wasm-clean:
 	$(RM) $(WASM_DIR)/picosynth.js $(WASM_DIR)/picosynth.wasm
@@ -104,7 +102,7 @@ serve: wasm
 # List available melodies
 list-melodies:
 	@echo "Available melodies:"
-	@ls -1 assets/melodies/*.txt 2>/dev/null | sed 's|assets/melodies/||;s|\.txt||' | while read m; do echo "  $$m"; done
+	@ls -1 web/assets/melodies/*.txt 2>/dev/null | sed 's|web/assets/melodies/||;s|\.txt||' | while read m; do echo "  $$m"; done
 	@echo ""
 	@echo "Usage: make MELODY=<name>"
 	@echo "Example: make MELODY=twinkle"
