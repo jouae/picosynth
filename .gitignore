@@ -2,6 +2,7 @@
 example
 output.wav
 melody.h
+tools/midi2c
 
 # Emscripten/WASM build outputs
 *.wasm
