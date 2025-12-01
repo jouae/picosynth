@@ -15,6 +15,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Fast-running lint job to catch formatting issues early
+  lint:
+    runs-on: ubuntu-24.04
+    name: Code Quality Checks
+    timeout-minutes: 10
+
+    env:
+      CLANG_FORMAT_VERSION: 18
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install linting tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-format-${{ env.CLANG_FORMAT_VERSION }} shfmt
+
+      - name: Check code formatting
+        run: .ci/check-format.sh
+
+      - name: Check newline at end of files
+        run: .ci/check-newline.sh
+
   build:
     runs-on: ubuntu-latest
     steps:
