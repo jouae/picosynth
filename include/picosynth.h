@@ -111,6 +111,22 @@ typedef struct {
     q15_t coeff_target; /* Target cutoff for smoothing */
 } picosynth_filter_t;
 
+/* Two-pole State Variable Filter (SVF) state.
+ * Provides -12dB/octave rolloff with resonance control.
+ * Topology: hp = in - lp - q*bp; lp += f*bp; bp += f*hp
+ */
+typedef struct {
+    const q15_t *in; /* Input signal pointer */
+    int32_t lp;      /* Low-pass state (Q15 scaled <<8 for precision) */
+    int32_t bp;      /* Band-pass state (Q15 scaled <<8) */
+    q15_t f;         /* Frequency coefficient: 2*sin(pi*fc/fs) in Q15 */
+    q15_t f_target;  /* Target frequency for smoothing */
+    q15_t q; /* Damping factor. Higher means more damping (less resonance).
+              * Q15_MAX = maximum damping (no resonance), 0 = self-oscillation.
+              * Note: This is NOT 1/Q since 1/Q can exceed Q15 range.
+              */
+} picosynth_svf_t;
+
 /* 3-input mixer state */
 typedef struct {
     const q15_t *in[3]; /* Input signal pointers (NULL = unused) */
@@ -124,6 +140,9 @@ typedef enum {
     PICOSYNTH_NODE_LP,
     PICOSYNTH_NODE_HP,
     PICOSYNTH_NODE_MIX,
+    PICOSYNTH_NODE_SVF_LP, /* 2-pole SVF low-pass (-12dB/oct) */
+    PICOSYNTH_NODE_SVF_HP, /* 2-pole SVF high-pass */
+    PICOSYNTH_NODE_SVF_BP, /* 2-pole SVF band-pass */
 } picosynth_node_type_t;
 
 /* Audio processing node */
@@ -136,6 +155,7 @@ typedef struct {
         picosynth_osc_t osc;
         picosynth_env_t env;
         picosynth_filter_t flt;
+        picosynth_svf_t svf;
         picosynth_mixer_t mix;
     };
 } picosynth_node_t;
@@ -207,6 +227,41 @@ void picosynth_init_hp(picosynth_node_t *n,
 
 /* Set filter cutoff with smoothing */
 void picosynth_filter_set_coeff(picosynth_node_t *n, q15_t coeff);
+
+/* Initialize 2-pole SVF low-pass filter (-12dB/octave).
+ * @f_coeff : frequency coefficient (use picosynth_svf_freq() to calculate)
+ * @q       : damping factor in Q15. Q15_MAX/2 (16384) = Butterworth (Q=0.707)
+ *            Higher values = more resonance, lower values = overdamped
+ */
+void picosynth_init_svf_lp(picosynth_node_t *n,
+                           const q15_t *gain,
+                           const q15_t *in,
+                           q15_t f_coeff,
+                           q15_t q);
+
+/* Initialize 2-pole SVF high-pass filter */
+void picosynth_init_svf_hp(picosynth_node_t *n,
+                           const q15_t *gain,
+                           const q15_t *in,
+                           q15_t f_coeff,
+                           q15_t q);
+
+/* Initialize 2-pole SVF band-pass filter */
+void picosynth_init_svf_bp(picosynth_node_t *n,
+                           const q15_t *gain,
+                           const q15_t *in,
+                           q15_t f_coeff,
+                           q15_t q);
+
+/* Set SVF frequency coefficient with smoothing */
+void picosynth_svf_set_freq(picosynth_node_t *n, q15_t f_coeff);
+
+/* Calculate SVF frequency coefficient from cutoff frequency (Hz).
+ * Returns f = 2*sin(pi*fc/fs) in Q15 format.
+ * Valid range: 1 Hz to SAMPLE_RATE/4 (higher values clamped for stability).
+ * Note: Very low frequencies (<20 Hz) may have reduced precision.
+ */
+q15_t picosynth_svf_freq(uint16_t fc_hz);
 
 /* Initialize 3-input mixer node */
 void picosynth_init_mix(picosynth_node_t *n,

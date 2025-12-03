@@ -30,7 +30,7 @@ function initAudio() {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
 
         /* ScriptProcessor for real-time keyboard playback.
-         * NOTE: createScriptProcessor is deprecated and may cause audio glitches.
+         * Note: createScriptProcessor is deprecated and may cause audio glitches.
          * AudioWorklet is the recommended modern approach.
          */
         const bufferSize = 2048;

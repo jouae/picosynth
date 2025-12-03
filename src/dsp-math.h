@@ -1,14 +1,14 @@
 /*
- * Sine waveform implementation
+ * DSP math implementation
  *
- * Configuration (define before including picosynth.h):
+ * Sine waveform configuration (define before including picosynth.h):
  *   PICOSYNTH_SINE_LUT_8BIT  - 8-bit 129-entry LUT (default, smallest)
  *   PICOSYNTH_SINE_LUT_16BIT - 16-bit 257-entry LUT (higher quality)
  *   PICOSYNTH_USE_SINF       - Use sinf() (highest quality, needs FPU)
  */
 
-#ifndef PICOSYNTH_MATH_H_
-#define PICOSYNTH_MATH_H_
+#ifndef PICOSYNTH_DSP_MATH_H_
+#define PICOSYNTH_DSP_MATH_H_
 
 #include "picosynth.h"
 
@@ -78,6 +78,16 @@ static const q15_t sine_lut16[257] = {
 };
 #endif
 
+/* Pre-computed sine table for SVF frequency calculation.
+ * sin(pi * i / 64) * 32767 for i = 0..32 (quarter wave)
+ * Covers 0 to pi/2 which maps to fc/fs = 0 to 0.5
+ */
+static const q15_t svf_sin_table[33] = {
+    0,     1608,  3212,  4808,  6393,  7962,  9512,  11039, 12540,
+    14010, 15447, 16846, 18205, 19520, 20788, 22006, 23170, 24279,
+    25330, 26320, 27246, 28106, 28899, 29622, 30274, 30853, 31357,
+    31786, 32138, 32413, 32610, 32729, 32767};
+
 /* Internal sine generator (static inline for performance)
  * Input:  phase in [0, Q15_MAX]
  * Output: sine value in [-Q15_MAX, Q15_MAX]
@@ -108,4 +118,4 @@ static inline q15_t picosynth_sine_impl(q15_t phase)
 #endif
 }
 
-#endif /* PICOSYNTH_MATH_H_ */
+#endif /* PICOSYNTH_DSP_MATH_H_ */
