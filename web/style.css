@@ -163,11 +163,11 @@ main {
     border-radius: 2px;
 }
 
-.key.white.active, .key.white:active {
+.key.white.active {
     background: var(--primary);
 }
 
-.key.black.active, .key.black:active {
+.key.black.active {
     background: var(--primary);
 }
 

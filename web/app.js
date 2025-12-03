@@ -112,8 +112,12 @@ function buildKeyboard() {
 
     /* Pointer events for mouse and touch */
     kbd.addEventListener('pointerdown', (e) => {
-        const key = e.target.closest('.key');
+        const target = e.target;
+        /* Black keys take priority - check if clicked element is black key */
+        const blackKey = target.classList.contains('black') ? target : null;
+        const key = blackKey || target.closest('.key');
         if (!key) return;
+        e.stopPropagation();
         kbd.setPointerCapture(e.pointerId);
         playNote(parseInt(key.dataset.midi));
     });
