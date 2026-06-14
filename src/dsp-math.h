@@ -31,18 +31,10 @@
 
 /* Sine LUTs: quarter-cycle with extra entry for interpolation */
 #if defined(PICOSYNTH_SINE_LUT_8BIT) && PICOSYNTH_SINE_LUT_8BIT
-static const q7_t sine_lut8[129] = {
-    0,    6,    12,   19,   25,   31,   37,   43,   49,   54,   60,   65,
-    71,   76,   81,   85,   90,   94,   98,   102,  106,  109,  112,  115,
-    117,  120,  122,  123,  125,  126,  126,  127,  127,  127,  126,  126,
-    125,  123,  122,  120,  117,  115,  112,  109,  106,  102,  98,   94,
-    90,   85,   81,   76,   71,   65,   60,   54,   49,   43,   37,   31,
-    25,   19,   12,   6,    0,    -6,   -12,  -19,  -25,  -31,  -37,  -43,
-    -49,  -54,  -60,  -65,  -71,  -76,  -81,  -85,  -90,  -94,  -98,  -102,
-    -106, -109, -112, -115, -117, -120, -122, -123, -125, -126, -126, -127,
-    -127, -127, -126, -126, -125, -123, -122, -120, -117, -115, -112, -109,
-    -106, -102, -98,  -94,  -90,  -85,  -81,  -76,  -71,  -65,  -60,  -54,
-    -49,  -43,  -37,  -31,  -25,  -19,  -12,  -6,   0,
+static const q7_t sine_lut8[33] = {
+    0,   6,   12,  19,  25,  31,  37,  43,  49,  54,  60,  65,  71,  76,  81,  85,
+    90,  94,  98,  102, 106, 109, 112, 115, 117, 120, 122, 123, 125, 126, 126, 127,
+    127
 };
 #elif defined(PICOSYNTH_SINE_LUT_16BIT) && PICOSYNTH_SINE_LUT_16BIT
 static const q15_t sine_lut16[257] = {
@@ -91,17 +83,31 @@ static const q15_t svf_sin_table[33] = {
 /* Internal sine generator (static inline for performance)
  * Input:  phase in [0, Q15_MAX]
  * Output: sine value in [-Q15_MAX, Q15_MAX]
+ * 
  */
 static inline q15_t picosynth_sine_impl(q15_t phase)
 {
 #if defined(PICOSYNTH_SINE_LUT_8BIT) && PICOSYNTH_SINE_LUT_8BIT
-    int idx = (phase >> 8) & 0x7F;
+    uint8_t idx = (phase >> 8) & 0x7F;
+    // The LUT is for the first quarter wave, so we need to mirror/flip the index
+    // to cover the full sine wave. The 7-bit index gives us 128 entries per half wave.
+    // Bit 7: 0 for first half (0..pi), 1 for second half (pi..2pi)
+    // Bit 6: 0 for first quarter (0..pi/2), 1 for second quarter (pi/2..pi)
+
+    uint8_t is_backward = (idx >> 5) & 1;
+    uint8_t is_negative = (idx >> 6) & 1;
+
+    uint8_t offset = idx & 0x1F;
+    idx = (offset ^ (is_backward * 31)) + is_backward;
+
     q15_t r = sine_lut8[idx] * 258;
 #if PICOSYNTH_INTERPOLATE
-    q15_t next = sine_lut8[idx + 1] * 258;
+    int step = 1 - is_backward * 2;
+    q15_t next = sine_lut8[idx + step] * 258;
     r += (q15_t) (((next - r) * (phase & 0xFF)) >> 8);
 #endif
-    return r;
+    int16_t sign_mask = -((int16_t)is_negative);
+    return (r ^ sign_mask) - sign_mask;
 #elif defined(PICOSYNTH_SINE_LUT_16BIT) && PICOSYNTH_SINE_LUT_16BIT
     int idx = (phase >> 7) & 0xFF;
     q15_t r = sine_lut16[idx];
