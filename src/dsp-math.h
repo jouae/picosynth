@@ -88,11 +88,11 @@ static inline q15_t picosynth_sine_impl(q15_t phase)
 {
 #if defined(PICOSYNTH_SINE_LUT_8BIT) && PICOSYNTH_SINE_LUT_8BIT
     uint8_t idx = (phase >> 8) & 0x7F;
-    // The LUT is for the first quarter wave, so we need to mirror/flip the
-    // index to cover the full sine wave. The 7-bit index gives us 128 entries
-    // per half wave. Bit 7: 0 for first half (0..pi), 1 for second half
-    // (pi..2pi) Bit 6: 0 for first quarter (0..pi/2), 1 for second quarter
-    // (pi/2..pi)
+    /*
+     * The 7-bit index gives 128 entries per full wave. Bit 6: 0 for first
+     * half (0..pi), 1 for second half (pi..2pi). Bit 5: 0 for first
+     * quarter (0..pi/2), 1 for second quarter (pi/2..pi).
+     */
 
     uint8_t is_backward = (idx >> 5) & 1;
     uint8_t is_negative = (idx >> 6) & 1;
